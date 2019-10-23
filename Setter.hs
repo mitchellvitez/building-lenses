@@ -1,3 +1,5 @@
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -58,3 +60,26 @@ over setter f = runIdentity #. setter (Identity #. f)
 
 (+~) :: Num a => Setter s t a a -> a -> s -> t
 setter +~ a = over setter (+a)
+
+class Monad m => MonadState s m | m -> s where
+  get :: m s
+  get = state (\s -> (s, s))
+
+  put :: s -> m ()
+  put s = state (\_ -> ((), s))
+
+  state :: (s -> (a, s)) -> m a
+  state f = do
+    s <- get
+    let ~(a, s') = f s
+    put s'
+    return a
+
+modify :: MonadState s m => (s -> s) -> m ()
+modify f = state (\s -> ((), f s))
+
+(.=) :: MonadState s m => Setter s s a b -> b -> m ()
+setter .= b = modify $ set setter b
+
+(%=) :: MonadState s m => Setter s s a b -> (a -> b) -> m ()
+setter %= f = modify $ over setter f
