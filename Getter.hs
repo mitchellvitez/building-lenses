@@ -71,5 +71,16 @@ succGetter = toGetter succ
 idGetter :: Getter a a
 idGetter = id
 
+infixl 4 >$, $<
+
+(>$) :: Contravariant f => b -> f b -> f a
+(>$) = contramap . const
+
+($<) :: Contravariant f => f b -> b -> f a
+($<) = flip (>$)
+
+phantom :: (Contravariant f, Functor f) => f a -> f b
+phantom x = () <$ x $< ()
+
 toGetter :: (s -> a) -> Getter s a
-toGetter get f = Const . getConst . f . get
+toGetter get f = phantom . f . get
